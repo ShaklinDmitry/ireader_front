@@ -6,7 +6,7 @@ import ReadCanvas from './ReadCanvas';
 function App() {
   return (
       <div className="App">
-        <ReadCanvas></ReadCanvas>
+        <ReadCanvas/>
       </div>
   );
 }

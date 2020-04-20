@@ -3,15 +3,17 @@ import PDFJS from 'pdfjs-dist'
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.entry';
 PDFJS.GlobalWorkerOptions.workerSrc = pdfjsWorker;
 
-
 class ReadCanvas extends React.Component {
 
-    constructor(props) { 
+    constructor(props) {
+
         super(props);
+
         this.state = {text: '',
-                      pdf: new Object(),
+                      pdf: '',
                       swipedir: '',
-                      curPage:0};
+                      curPage:0,
+        };
 
         var startX,
             startY,
@@ -35,7 +37,7 @@ class ReadCanvas extends React.Component {
         document.addEventListener('touchend', (e) => {
             var touchobj = e.changedTouches[0]
 
-            if(touchobj == undefined){
+            if(touchobj === undefined){
                 return
             }
 
@@ -49,64 +51,73 @@ class ReadCanvas extends React.Component {
                 else if (Math.abs(distY) >= threshold && Math.abs(distX) <= restraint){ // 2nd condition for vertical swipe met
                     this.swipedir = (distY < 0)? 'up' : 'down' // if dist traveled is negative, it indicates up swipe
                 }
-                console.log(this.swipedir);
+
+                switch (this.swipedir) {
+                    case 'left':
+                        this.state.curPage++;
+                        break;
+                    case 'right':
+                        this.state.curPage--;
+                        break;
+
+                    default:
+                }
+
+                console.log(this.state.curPage);
+
+                if(this.state.curPage > 0){
+                    this.openPage(this.state.curPage);
+                }
             }
-
-            switch (this.swipedir) {
-                case 'left':
-                    this.curPage--;
-                    break;
-                case 'right':
-                    this.curPage++;;
-                    break;
-
-                default:
-            }
-
-            console.log(this.curPage);
-
         }, false)
-
     }
 
 
     componentDidMount() {
-        var reader = new FileReader();
-
-        reader.onload = function(e) {
-            var text = reader.result;
-        }
-
-        PDFJS.getDocument('http://localhost:3004').then(
-            (pdfFile)=>{
-                this.setState({pdf:pdfFile});
-            }
-        );
-
+        console.log('componentDidMount');
+        var loadingTask = PDFJS.getDocument('http://localhost:3004').promise.then((pdfFile) => {
+            this.setState({pdf: pdfFile});
+            this.openPage(20);
+        });
+        console.log(this.state.loadingTask);
     }
 
     openPage(number){
-        this.state.pdf.getPage(number).then(function(page) {
-            var scale = 1;
-            var viewport = page.getViewport({ scale: scale, });
+            console.log('openPage');
+            console.log(this.state.pdf);
 
-            var canvas = document.getElementById('canvas');
-            var context = canvas.getContext('2d');
-            canvas.height = viewport.height;
-            canvas.width = viewport.width;
+            this.state.pdf.getPage(number).then(function(page) {
+                var scale = 1.5;
+                var viewport = page.getViewport({ scale: scale, });
 
-            var renderContext = {
-                canvasContext: context,
-                viewport: viewport
-            };
+                var canvas = document.getElementById('canvas');
+                var context = canvas.getContext('2d');
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
 
-            page.render(renderContext);
-            // you can now use *page* here
-        });
+                var renderContext = {
+                    canvasContext: context,
+                    viewport: viewport
+                };
+
+                page.render(renderContext);
+                // you can now use *page* here
+            });
     }
 
     render() {
-        return <canvas id={'canvas'} width={640} height={425}/>;
+        return (
+            <div>
+                <button onClick={()=>{
+                    this.state.curPage++;
+                    this.openPage(this.state.curPage);
+                }
+                }>
+                    Активировать лазеры
+                </button>
+
+                <canvas id={'canvas'} width={640} height={425} tabIndex={1}/>
+            </div>)
     }
 }
 
